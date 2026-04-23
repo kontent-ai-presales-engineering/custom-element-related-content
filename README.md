@@ -6,129 +6,182 @@
 
 [![Discord][discord-shield]][discord-url]
 
+# Reverse Link Viewer — Kontent.ai Custom Element
 
-# Kontent.ai React Custom Element Starter
+A read-only Custom Element for [Kontent.ai](https://kontent.ai/) that displays all content items (Variants, Derivatives, etc.) that link back to the current **Core Snippet** via a specific Linked Items element.
 
-This starter can be used to jumpstart your own custom element development with Kontent.ai. It contains all the necessary tools for creating a new [Custom Element](https://kontent.ai/learn/docs/custom-elements), a UI extension for content editors.
+Place this element on a **Core Snippet** content type and it will automatically query the Delivery Preview API for every item that references that snippet, then render them as a clickable list with workflow-status badges and direct deep-links into the Kontent.ai app.
 
-You can inspire yourself by browsing already created integrations [**here**](https://github.com/topics/kontent-ai-integration).
+---
 
-If you wish to include your integration into the mentioned list, please add the **kontent-ai-integration** topic into your github integration repository. 
+## Features
 
-Additional Kontent.ai GitHub resources and tutorials can be found on [kontent-ai.github.io](https://kontent-ai.github.io/).
+- **Reverse-link discovery** — finds every content item that has linked to the current Core Snippet through a configurable Linked Items element.
+- **Workflow status badges** — color-coded indicators (Draft, Review, Approved, Published, Scheduled, Archived) derived from each item's workflow step.
+- **Deep-link navigation** — click any row to open that content item directly in the Kontent.ai editor in a new tab.
+- **Dynamic height** — the iframe resizes to fit the list; no scrollbars inside the element.
+- **Loading / empty / error states** — clear feedback in every scenario with a one-click retry on errors.
+- **Refresh button** — re-fetches the list on demand without a full page reload.
 
-# Getting Started
+---
 
-## Running the project
+## Screenshots
 
-The integration is created with [Vite](https://vitejs.dev/). 
+| State | Description |
+|---|---|
+| Loading spinner | Shown while the Delivery Preview API request is in-flight |
+| Item list | Name · language · last-modified · workflow badge · open-in-editor icon |
+| Empty state | Friendly message when no items link to the snippet |
+| Error state | API error message with a **Try again** button |
 
-1. Install dependencies with `npm ci`.
-2. Run a local development server with `npm run dev`.
-3. To deploy the element you can use the output of running `npm run build` command that you can find in the `dist` folder.
+---
 
-See [Vite guide](https://vitejs.dev/guide/#command-line-interface) for more available commands.
+## Getting Started
 
-## Define your Element's API
+### 1. Install dependencies
 
-There are two main things that you'll need to define.
-* What configuration will your custom element need. (This is provided in the configuration when adding the custom element into a content type)
-* What value will the custom element save. In what format (the value needs to be serialized into string).
-
-You can define the shape of your configuration in the `src/customElement/config.ts` file along with a validation function that will show the user an error when the provided configuration is not valid.
-
-In the same way you can define the shape of your value in the `src/customElement/value.ts` file along with a parsing function from a string. Usually, the most flexible format is json serialized into the string.
-
-## Define your Element's height handling
-
-The width of the custom element is always the full width of the editing element in the Kontent.ai app. However, the height can be defined by the element itself.
-In the `src/main.tsx` file you can find the usage of the `CustomElementContext` where you can define the height of your element.
-It can either be a specific size in pixels, `"default"` to use the default value or `"dynamic"` to resize the element based on the height of the element's body element.
-
-## Write your Element
-
-You can start building the element in the `src/IntegrationApp.tsx` file where you can find example usage of several utilities defined in this repository that might come in useful.
-
-## Utilities in this repository
-
-### useConfig
-
-Use this hook to get the configuration provided for this custom element.
-The configuration will be valid based on the validation function you defined in `src/customElement/config.ts` and will be of the `Config` type also defined in the file.
-
-### useValue
-
-Use this hook to get the current value of the element and a function to update the value.
-The value will be parsed using the function defined in `src/customElement/value.ts` and will be of the `Value` type also defined in the file.
-Example:
-```ts
-const [value, setValue] = useValue();
+```bash
+npm ci
 ```
 
-### useIsDisabled
+### 2. Run locally
 
-This hook indicates whether your element should appear disabled. (e.g. when the item is published or the user doesn't have permission to modify the item)
-It subscribes to changes so the returned value will always be up-to-date.
+```bash
+npm run dev
+```
 
-### useEnvironmentId
+The dev server starts at `https://localhost:5173` (self-signed SSL, required by the Custom Element iframe sandbox).
 
-Returns the environment id of this element's content item.
+### 3. Build for deployment
 
-### useItemInfo
+```bash
+npm run build
+```
 
-Gets information about the element's content item. 
-See the `ItemDetail` type in the `src/customElement/types/customElement.d.ts` file for details of available item information.
+The production bundle is written to `dist/`. Deploy to any static host (GitHub Pages, Vercel, Netlify, Azure Static Web Apps, etc.) and use the hosted URL as the Custom Element URL in Kontent.ai.
 
-### useVariantInfo
+---
 
-Gets the element's language id and codename.
+## Configuration
 
-### useElements
+When you add this element to a **Core Snippet** content type in Kontent.ai, supply the following JSON in the **Configuration** field:
 
-Use this hook to get values of the specified elements (accepts element codenames). 
-The hook subscribes to element changes so the returned values will always be up-to-date.
+```json
+{
+  "apiKey": "<your-preview-delivery-api-key>",
+  "linkedItemsElementCodename": "<codename-of-the-linked-items-element>"
+}
+```
 
-### promptToSelectItems
+| Field | Type | Description |
+|---|---|---|
+| `apiKey` | `string` | **Preview Delivery API key** for your Kontent.ai environment. Found under *Project settings → API keys → Preview Delivery API*. |
+| `linkedItemsElementCodename` | `string` | The codename of the **Linked Items** element on your Variant / Derivative content types that stores the reference to the Core Snippet. For example `core_snippet`. |
 
-Use this function to prompt the user to select content items.
-You can specify whether they should select only one or several.
-The function returns details of the selected items.
+### Example configuration
 
-### promptToSelectAssets
+Suppose your Variant content type has a Linked Items element whose codename is `core_snippet`. Your config would be:
 
-Use this function to prompt the user to select assets.
-You can specify whether they should select only one or several and whether they should only select images or any asset.
-The function returns details of the selected assets.
+```json
+{
+  "apiKey": "ey...",
+  "linkedItemsElementCodename": "core_snippet"
+}
+```
 
-# Structure of the Custom Element
+The element will then query:
 
-## Static resources in the `index.html` file
+```
+GET https://preview-deliver.kontent.ai/{projectId}/items
+    ?elements.core_snippet[contains]={currentItemCodename}
+    &depth=0
+    &limit=100
+```
 
-Every Kontent.ai custom element needs the [Custom Element API](https://kontent.ai/learn/reference/custom-elements-js-api/) to work properly.
-This custom element is no exception and you can find it linked in the `index.html` template in the root of the repository.
+---
 
-Additionally, you can find there linked a CSS file from the `public` folder.
-This contains Kontent.ai styling that you can leverage to make your custom element look similar to the rest of the Kontent.ai app.
-It also includes Kontent.ai font.
+## How it works
 
-## `CustomElementContext`
+```
+CustomElement.init()
+      │
+      ▼
+ Reads projectId, item.codename from context
+ Reads apiKey + linkedItemsElementCodename from config
+      │
+      ▼
+ fetchRelatedItems() → Delivery Preview API
+      │
+      ▼
+ Renders list of RelatedItem rows
+ Each row: Name | Language | Last modified | WorkflowBadge | ↗ deep-link
+```
 
-This is the core of the connection to the Custom Element API.
-You can find here the call to the `CustomElement.init` function that initializes the custom element and populates the React context with useful information like the element's value, config and so on.
-It also handles handles height of the custom element using the supplied prop `height`.
+### Deep-link URL format
 
-## `selectors.ts`
+```
+https://app.kontent.ai/goto/edit-item/project/{projectId}/variant-codename/{languageCodename}/item/{itemId}
+```
 
-Here you can find the implementation of most of the wrappers around the Custom Element API.
+`languageCodename` and `itemId` come directly from the Delivery API response (`system.language` and `system.id`), so each row correctly links to its own language variant.
 
-# Contributing
+### Workflow badge colors
 
-For Contributing please see  [`CONTRIBUTING.md`](CONTRIBUTING.md) for more information.
+| Step codename(s) | Color | Label |
+|---|---|---|
+| `draft` | Gray | Draft |
+| `review` | Orange | Review |
+| `ready_to_publish`, `approved` | Blue | Approved |
+| `published` | Green | Published |
+| `scheduled` | Purple | Scheduled |
+| `archived` | Red | Archived |
+| *(anything else)* | Gray | *(step codename as-is)* |
 
-# License
+---
+
+## Project structure
+
+```
+src/
+├── api/
+│   └── deliveryApi.ts          # Delivery Preview API fetching + response types
+├── customElement/
+│   ├── config.ts               # Config type (apiKey, linkedItemsElementCodename)
+│   ├── value.ts                # Value type (none — read-only element)
+│   ├── CustomElementContext.tsx # React context & hooks wrapping the CE API
+│   ├── EnsureKontentAsParent.tsx # Guard: errors if not inside Kontent.ai iframe
+│   ├── selectors.ts            # promptToSelectItems / promptToSelectAssets helpers
+│   └── types/
+│       └── customElement.d.ts  # Global CustomElement type declarations
+├── IntegrationApp.tsx          # Main Reverse Link Viewer component
+├── index.css                   # Tailwind CSS v4 entry point
+└── main.tsx                    # React entry — mounts the app
+```
+
+---
+
+## Available hooks (from CustomElementContext)
+
+| Hook | Returns | Description |
+|---|---|---|
+| `useConfig()` | `Config` | The element's configuration object (`apiKey`, `linkedItemsElementCodename`) |
+| `useEnvironmentId()` | `string` | The Kontent.ai project / environment ID |
+| `useItemInfo()` | `ItemInfo` | Current item's `id`, `codename`, `name`, `collection` |
+| `useVariantInfo()` | `{ id, codename }` | Current language variant info |
+| `useValue()` | `[Value\|null, setter]` | Element's stored value (unused — element is read-only) |
+| `useIsDisabled()` | `boolean` | Whether the element is in a disabled/read-only state |
+
+---
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for guidelines.
+
+## License
 
 Distributed under the MIT License. See [`LICENSE.md`](./LICENSE.md) for more information.
 
+---
 
 [contributors-shield]: https://img.shields.io/github/contributors/kontent-ai/custom-element-starter-react.svg?style=for-the-badge
 [contributors-url]: https://github.com/kontent-ai/custom-element-starter-react/graphs/contributors
@@ -137,8 +190,8 @@ Distributed under the MIT License. See [`LICENSE.md`](./LICENSE.md) for more inf
 [stars-shield]: https://img.shields.io/github/stars/kontent-ai/custom-element-starter-react.svg?style=for-the-badge
 [stars-url]: https://github.com/kontent-ai/custom-element-starter-react/stargazers
 [issues-shield]: https://img.shields.io/github/issues/kontent-ai/custom-element-starter-react.svg?style=for-the-badge
-[issues-url]:https://github.com/kontent-ai/custom-element-starter-react/issues
+[issues-url]: https://github.com/kontent-ai/custom-element-starter-react/issues
 [license-shield]: https://img.shields.io/github/license/kontent-ai/custom-element-starter-react.svg?style=for-the-badge
-[license-url]:https://github.com/kontent-ai/custom-element-starter-react/blob/master/LICENSE.md
+[license-url]: https://github.com/kontent-ai/custom-element-starter-react/blob/master/LICENSE.md
 [discord-shield]: https://img.shields.io/discord/821885171984891914?color=%237289DA&label=Kontent.ai%20Discord&logo=discord&style=for-the-badge
 [discord-url]: https://discord.com/invite/SKCxwPtevJ
